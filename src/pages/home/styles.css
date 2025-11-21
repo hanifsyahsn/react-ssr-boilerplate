@@ -1,0 +1,14 @@
+@import '../../styles/variables.css';
+
+.home-page-container {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--gray-50);
+    @media (--medium) {
+        background-color: var(--gray-800);
+    }
+}

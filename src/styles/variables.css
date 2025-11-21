@@ -1,0 +1,66 @@
+:root {
+
+    /* Base Colors */
+    --green: #04be66;
+    --orange: #fa9c16;
+
+    /* Green Variants */
+    --green-light: #57dfa0;
+    --green-lighter: #a0f4cc;
+    --green-dark: #039a53;
+    --green-darker: #02763f;
+
+    /* Orange Variants */
+    --orange-light: #ffbe57;
+    --orange-lighter: #ffe1a0;
+    --orange-dark: #d98212;
+    --orange-darker: #a6630d;
+
+    --deep-teal: #0A3A40;
+
+    /* Neutral Colors */
+    --white: #ffffff;
+    --black: #000000;
+    --gray-50: #F8FAFB;
+    --gray-100: #f1f3f5;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #868e96;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+
+    /* Semantic */
+    --success: #04be66;
+    --warning: #fa9c16;
+    --danger: #e63946;
+    --info: #2196f3;
+
+    /* Gradients */
+    --gradient-green: linear-gradient(90deg, #04be66, #039a53);
+    --gradient-orange: linear-gradient(90deg, #fa9c16, #d98212);
+
+    --fs-xxs: 10px;
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-base: 16px;   /* default */
+    --fs-md: 18px;
+    --fs-lg: 20px;
+    --fs-xl: 24px;
+    --fs-2xl: 30px;
+    --fs-3xl: 36px;
+    --fs-4xl: 48px;
+    --fs-5xl: 60px;
+    --fs-6xl: 72px;
+}
+
+@custom-media --xxsmall (width <= 320px);
+@custom-media --xsmall (width <= 480px);
+@custom-media --small (width > 480px);
+@custom-media --medium (width > 768px);
+@custom-media --large (width > 960px);
+@custom-media --xlarge (width > 1200px);
+@custom-media --page-max-width (width > 1280px);
+@custom-media --xxlarge (width > 1600px);

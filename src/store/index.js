@@ -1,40 +1,44 @@
 import { configureStore, createSlice } from '@reduxjs/toolkit'
+import {AuthEnums} from "../enums/auth";
 
 const dataSlice = createSlice({
     name: "data",
     initialState: {
         items: [],
         about: {},
-        loading: false,
+        auth: {
+            user: {},
+            status: AuthEnums.CHECKING,
+        },
         error: null,
     },
     reducers: {
-        fetchStart: (state) => {
-            state.loading = true;
-            state.error = null;
+        setAuthChecking: (state) => {
+            state.auth.status = AuthEnums.CHECKING;
         },
-        fetchSuccess: (state, action) => {
-            state.loading = false;
-            state.items = action.payload;
+        setAuthUser: (state, action) => {
+            state.auth.user = action.payload.user;
+            state.auth.status = AuthEnums.AUTHENTICATED;
+        },
+        setAuthUnauthenticated: (state) => {
+            state.auth.user = {};
+            state.auth.status = AuthEnums.UNAUTHENTICATED;
         },
         fetchAbout: (state, action) => {
-            state.loading = false;
             state.about = action.payload.about;
         },
         fetchError: (state, action) => {
-            state.loading = false;
             state.error = action.payload.error;
         },
     },
 });
 
-// Export action creators
 export const {
-    fetchStart,
-    fetchSuccess,
     fetchAbout,
-    fetchError
-} = dataSlice.actions;
+    fetchError,
+    setAuthChecking,
+    setAuthUser,
+    setAuthUnauthenticated,} = dataSlice.actions;
 
 export const createStore = (preloadedState = {}) =>
     configureStore({
