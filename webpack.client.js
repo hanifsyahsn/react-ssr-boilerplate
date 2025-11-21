@@ -1,5 +1,6 @@
 // webpack.client.js
 const path = require("path");
+const MiniCssExtractPlugin  = require("mini-css-extract-plugin");
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -9,6 +10,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist/client"),
         filename: "bundle.js",
+        publicPath: "/",
     },
     module: {
         rules: [
@@ -19,10 +21,19 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: ["style-loader", "css-loader"],
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    "css-loader",
+                    "postcss-loader",
+                ],
             },
         ],
     },
+    plugins: [
+        new MiniCssExtractPlugin({
+            filename: "styles.css",
+        }),
+    ],
     resolve: {
         extensions: [".js", ".jsx"],
     },

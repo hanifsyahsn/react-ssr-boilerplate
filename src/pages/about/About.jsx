@@ -1,6 +1,6 @@
 import React, {useEffect} from "react";
 import {useDispatch, useSelector} from "react-redux";
-import {fetchAbout, fetchError} from "../store/index";
+import {fetchAbout, fetchError} from "../../store";
 
 // Component
 const About = () => {
