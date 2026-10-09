@@ -8,7 +8,7 @@ module.exports = {
     mode: isDev ? "development" : "production",
     target: "node",
     externals: [nodeExternals()],
-    entry: "./src/server/server.js",
+    entry: "./src/server/server.tsx",
     output: {
         path: path.resolve(__dirname, "dist/server"),
         filename: "server.js",
@@ -16,7 +16,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.jsx?$/,
+                test: /\.[jt]sx?$/,
                 exclude: /node_modules/,
                 use: "babel-loader",
             },
@@ -27,7 +27,7 @@ module.exports = {
         ],
     },
     resolve: {
-        extensions: [".js", ".jsx"],
+        extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
     devtool: isDev ? "inline-source-map" : false,
 };

@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 module.exports = {
     mode: isDev ? "development" : "production",
-    entry: "./src/client/index.jsx",
+    entry: "./src/client/index.tsx",
     output: {
         path: path.resolve(__dirname, "dist/client"),
         filename: "bundle.js",
@@ -15,7 +15,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.jsx?$/,
+                test: /\.[jt]sx?$/,
                 exclude: /node_modules/,
                 use: "babel-loader",
             },
@@ -35,7 +35,7 @@ module.exports = {
         }),
     ],
     resolve: {
-        extensions: [".js", ".jsx"],
+        extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
     devtool: isDev ? "cheap-module-source-map" : false, // source maps only in dev
 };
