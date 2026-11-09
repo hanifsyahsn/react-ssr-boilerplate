@@ -1,0 +1,21 @@
+name: CI
+
+# Tests are mandatory: every push and pull request must pass the typecheck,
+# all tests and the coverage thresholds in vitest.config.mts, and must build.
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # package-lock.json is gitignored in this repo, so `npm ci` is not possible.
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - run: npm run build

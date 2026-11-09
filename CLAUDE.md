@@ -4,9 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-There is no test suite or linter configured in this project (no jest/vitest/eslint config present).
-
 ```bash
+npm test             # vitest run: all unit + integration tests (must pass before every commit)
+npm run test:watch   # vitest in watch mode while developing
+npm run test:coverage # tests + coverage report (coverage/index.html); fails below the thresholds in vitest.config.mts
+npm run check        # typecheck + test:coverage — exactly what CI runs (plus build)
+npx vitest run src/pages/login   # run one folder / file; add -t "name" to run one test
 npm run dev          # dev server: rebuilds client+server bundles on change (watches src/, src/client) then runs dist/server/server.js
 npm run devx         # same as dev but only watches src/ (no explicit src/client watch)
 npm run build        # build:client + build:server (webpack, production or dev mode based on NODE_ENV)
@@ -15,15 +18,29 @@ npm run build:server # webpack.server.js -> dist/server/server.js (bundled for n
 npm start            # NODE_ENV=production node dist/server/server.js (run build first)
 ```
 
+No linter is configured.
+
 There is no hot-reload dev server — `dev`/`devx` do a full rebuild-and-restart on every file change via nodemon, so changes take a few seconds to appear. The server exposes an SSE endpoint `/__livereload` that sends a build id (hash of the built bundles) and injects a small script into the HTML shell; when a restarted/redeployed server reports a different build id, open tabs react according to `LIVE_RELOAD`: `auto` (reload immediately — default in dev), `prompt` (show a "new version available" Refresh/Later banner — default in production), or `off` (no endpoint, no script).
 
 `.env` sets `API_BASE_URL` (backend the `/api` requests are proxied to) and `LIVE_RELOAD` (`auto` | `prompt` | `off`). `PORT` defaults to 3000 if unset.
+
+## Testing (mandatory)
+
+Tests are required, not optional: CI (`.github/workflows/ci.yml`) runs typecheck, `test:coverage` and build on every push and PR, and fails when coverage drops below the thresholds in `vitest.config.mts` (95% lines/statements/functions, 90% branches). Repos started from this boilerplate keep this rule.
+
+- **Every behaviour gets a test that asserts the outcome** (rendered text, store state, HTTP status/body/cookies, navigation), not one that only executes the code. Name tests after the behaviour in plain words (`"redirects an unauthenticated user to /auth/login"`) so a failure reads as the rule that broke. A new page, endpoint, reducer, thunk or edge case ships with its tests in the same change.
+- **Coverage is supporting evidence, not the goal.** Never lower a threshold to make a change pass; add the missing behaviour test. When a change breaks existing tests, first report which behaviours broke and why, then change code or tests.
+- Tests live next to the code as `*.test.ts(x)`. Default environment is jsdom; server tests start with `// @vitest-environment node`.
+- **Stack:** Vitest, React Testing Library + `user-event` + jest-dom, MSW (fake backend for client code, `src/test/mswServer.ts`), supertest (real Express app).
+- **Helpers (`src/test/`):** `renderWithProviders(ui, { store, route, path })` renders inside Router + Redux + Loading like the real app and returns `location()` to assert navigation; `makeStore()` / `authenticated` / `checking` seed state; `testApp(overrides)` builds the real Express app with no auth latency and live reload off; `preloadedState(html)` reads `window.__PRELOADED_STATE__` from SSR output; `useMswServer()` starts MSW for a file (unhandled requests fail the test); `fixtureRoutes.tsx` is a fake route table for testing the server's page contract.
+- **Layers:** unit (reducers/thunks, `authApi`, axios 401-refresh interceptor, live reload config/script), component (pages, `PrivateRoute`, `Loading`), integration (`LoginPage` → thunk → axios → MSW; `App` with the real route table; `src/server/app.test.ts` SSR/auth/proxy/static via supertest; `src/client/index.test.tsx` hydrates real server HTML with the real client entry and fails on a hydration mismatch).
+- Stub `fetch` (`vi.stubGlobal`) for anything that calls it (e.g. `About.fetchData`); tests must never hit the real network.
 
 ## Architecture
 
 This is a hand-rolled (no framework like Next.js) React SSR boilerplate: one Express server does both SSR HTML rendering and serves the client bundle, with Redux state hydration bridging server and client.
 
-**Request flow (`src/server/server.js`):**
+**Request flow (`src/server/app.tsx`):** `server.tsx` is only the process entry (reads env, computes the build id, calls `createApp(config)`, listens). All behaviour lives in `createApp()` so tests can build the app with explicit config; live reload pieces are in `src/server/liveReload.ts`, the React render + HTML shell in `src/server/render.tsx`, the mock auth endpoints in `createAuthRouter(latencyMs)` (`src/server/authRoutes.ts`).
 1. Express catches all GET routes with a single `app.get(/.*/, ...)` handler.
 2. It manually matches the request path against `src/routes.js` using `path-to-regexp`'s `match()` (React Router itself never runs matching logic server-side for this purpose — it's duplicated here).
 3. If the matched route's component has a static `fetchData(store)` method, it's awaited before rendering (see `About.fetchData` for the pattern — dispatch results into the Redux store, not returned directly).
