@@ -23,6 +23,19 @@ export interface AppConfig {
     authLatencyMs?: number;
 }
 
+/**
+ * Decodes the request path the way React Router does on the client, so the
+ * server picks the same route (and runs its fetchData) for "/%61bout" as the
+ * client renders for "/about". A malformed escape like "/%E0" is matched as-is.
+ */
+function decodedPath(rawPath: string): string {
+    try {
+        return decodeURI(rawPath);
+    } catch {
+        return rawPath;
+    }
+}
+
 export function createApp(config: AppConfig): Express {
     const app = express();
     const liveReloadScript = liveReloadClientScript(config.liveReloadMode, config.isDev);
@@ -63,9 +76,18 @@ export function createApp(config: AppConfig): Express {
                 store.dispatch(setAuthUnauthenticated());
             }
 
+            const path = decodedPath(req.path);
             const matchedRoute =
-                routes.find((r) => r.path !== "*" && pathMatch(r.path, { decode: decodeURIComponent })(req.path)) ||
+                routes.find((r) => r.path !== "*" && pathMatch(r.path)(path)) ||
                 routes.find((r) => r.path === "*");
+
+            // The server already knows the auth status, so a protected page is
+            // never rendered for a logged-out visitor: redirect before render.
+            // 302, not 301: browsers cache a 301 forever, which would keep
+            // bouncing the user to the login page even after they log in.
+            if (matchedRoute?.protected && !user) {
+                return res.redirect(302, "/auth/login");
+            }
 
             if (matchedRoute?.component?.fetchData) {
                 await matchedRoute.component.fetchData(store);
@@ -73,8 +95,9 @@ export function createApp(config: AppConfig): Express {
 
             const appHtml = renderAppHtml(req.url, store, context);
 
+            // Temporary (302) on purpose; see the protected-route redirect above.
             if (context.url) {
-                return res.redirect(301, context.url);
+                return res.redirect(302, context.url);
             }
 
             const status = context.status || 200;

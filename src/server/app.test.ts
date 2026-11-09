@@ -38,6 +38,14 @@ describe("SSR: page rendering", () => {
         expect(res.text).toContain("<title>404 Not Found</title>");
         expect(res.text).toContain("404 - Page Not Found");
     });
+
+    it("runs the real About page's fetchData for an encoded /about path (/%61bout)", async () => {
+        const fetchMock = stubTodoApi();
+        const res = await request(testApp()).get("/%61bout");
+        expect(res.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(res.text).toContain("<p>SSR todo</p>");
+    });
 });
 
 describe("SSR: data fetching", () => {
