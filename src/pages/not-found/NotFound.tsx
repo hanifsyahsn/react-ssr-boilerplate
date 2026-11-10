@@ -1,4 +1,3 @@
-import React from "react";
 import type { RouteContext } from "../../types/routing";
 
 interface NotFoundProps {

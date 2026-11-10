@@ -6,12 +6,12 @@ import { renderAppHtml } from "../server/render";
 import { AuthEnums } from "../enums/auth";
 import { TEST_USER } from "../test/render";
 import { http } from "msw";
-import { API, apiError, server, useMswServer } from "../test/mswServer";
+import { API, apiError, server, setupMswServer } from "../test/mswServer";
 import type { RouteContext } from "../types/routing";
 
 // Integration: HTML rendered by the server tree is hydrated by the real client
 // entry. Catches the two trees drifting apart (hydration mismatch).
-useMswServer();
+setupMswServer();
 
 /** Puts server-rendered HTML + preloaded state into the page, like the HTML shell does. */
 function serverRender(url: string, loggedIn = false) {

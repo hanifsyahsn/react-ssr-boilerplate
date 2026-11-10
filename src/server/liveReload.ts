@@ -1,5 +1,5 @@
-import crypto from "crypto";
-import fs from "fs";
+import crypto from "node:crypto";
+import fs from "node:fs";
 import type { Express, Request, Response } from "express";
 
 // Live reload / new-version notice. The build id is a hash of the built

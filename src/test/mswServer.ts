@@ -32,7 +32,7 @@ export const defaultHandlers = [
 export const server = setupServer(...defaultHandlers);
 
 /** Call at the top level of a test file that talks to the API. */
-export function useMswServer() {
+export function setupMswServer() {
     beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
     afterEach(() => server.resetHandlers());
     afterAll(() => server.close());

@@ -1,6 +1,6 @@
 // @vitest-environment node
-import http from "http";
-import type { AddressInfo } from "net";
+import type http from "node:http";
+import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import express from "express";

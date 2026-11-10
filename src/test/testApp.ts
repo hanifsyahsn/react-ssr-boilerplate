@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import { createApp, type AppConfig } from "../server/app";
 
 /** createApp() with test-friendly defaults: no auth latency, live reload off. */

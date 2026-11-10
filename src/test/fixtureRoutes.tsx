@@ -1,4 +1,3 @@
-import React from "react";
 import { fetchAbout } from "../store";
 import type { AppRoute, PageComponent, RouteContext } from "../types/routing";
 

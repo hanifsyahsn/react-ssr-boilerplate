@@ -3,10 +3,10 @@ import { http, HttpResponse } from "msw";
 import api from "./api";
 import { setStore } from "../store/storeRef";
 import { AuthEnums } from "../enums/auth";
-import { API, apiError, server, useMswServer } from "../test/mswServer";
+import { API, apiError, server, setupMswServer } from "../test/mswServer";
 import { authenticated, makeStore } from "../test/render";
 
-useMswServer();
+setupMswServer();
 
 /** Counts calls per endpoint so tests can assert retries and refreshes. */
 function track() {

@@ -10,10 +10,12 @@
     "build": "npm run build:client && npm run build:server",
     "start": "cross-env NODE_ENV=production node dist/server/server.js",
     "typecheck": "tsc --noEmit",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome lint --write",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check": "npm run typecheck && npm run test:coverage"
+    "check": "npm run lint && npm run typecheck && npm run test:coverage"
   },
   "keywords": [],
   "author": "",
@@ -45,6 +47,7 @@
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.29.7",
+    "@biomejs/biome": "2.6.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",

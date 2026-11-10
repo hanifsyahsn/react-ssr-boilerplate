@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { fetchMe, login, logout, refresh } from "./authApi";
-import { API, apiError, server, useMswServer } from "../test/mswServer";
+import { API, apiError, server, setupMswServer } from "../test/mswServer";
 import { TEST_USER } from "../test/render";
 
-useMswServer();
+setupMswServer();
 
 describe("authApi.login", () => {
     it("posts the credentials to /api/auth/login and resolves on 200", async () => {

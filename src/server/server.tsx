@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import dotenv from "dotenv";
 import { createApp } from "./app";
 import { computeBuildId, resolveLiveReloadMode } from "./liveReload";

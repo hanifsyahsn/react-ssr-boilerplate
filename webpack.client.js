@@ -1,5 +1,5 @@
 // webpack.client.js
-const path = require("path");
+const path = require("node:path");
 const MiniCssExtractPlugin  = require("mini-css-extract-plugin");
 
 const isDev = process.env.NODE_ENV !== "production";

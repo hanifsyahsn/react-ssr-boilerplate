@@ -18,7 +18,7 @@ CI (`.github/workflows/ci.yml`) runs typecheck, `test:coverage` and build on eve
 **Helpers (`src/test/`):**
 - `renderWithProviders(ui, { store, route, path })`: renders inside Router + Redux + Loading like the real app; returns `location()` to assert navigation.
 - `makeStore()`, `authenticated`, `checking`, `TEST_USER`: seed state.
-- `useMswServer()`, `server`, `API`, `apiError()` (`mswServer.ts`): fake backend mirroring the mock auth contract.
+- `setupMswServer()`, `server`, `API`, `apiError()` (`mswServer.ts`): fake backend mirroring the mock auth contract.
 - `testApp(overrides)`: the real Express app (`createApp`) with no auth latency and live reload off; `preloadedState(html)` reads the state out of SSR HTML.
 - `fixtureRoutes.tsx`: fake route table, swapped in with `vi.mock("../routes", () => import("../test/fixtureRoutes"))` to test the server's page contract.
 

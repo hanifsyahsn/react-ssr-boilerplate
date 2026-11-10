@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAbout, fetchError } from "../../store";
 import type { AppDispatch, AppStore, RootState } from "../../store";

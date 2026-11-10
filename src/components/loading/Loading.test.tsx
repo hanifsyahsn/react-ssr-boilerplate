@@ -1,4 +1,3 @@
-import React from "react";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,10 +7,16 @@ function Toggle() {
     const ctx = useLoading();
     return (
         <>
-            <button onClick={() => ctx?.setLoading(true)}>start</button>
-            <button onClick={() => ctx?.setLoading(false)}>stop</button>
+            <button type="button" onClick={() => ctx?.setLoading(true)}>start</button>
+            <button type="button" onClick={() => ctx?.setLoading(false)}>stop</button>
         </>
     );
+}
+
+let probed: unknown;
+function Probe() {
+    probed = useLoading();
+    return null;
 }
 
 describe("Loading", () => {
@@ -42,12 +47,8 @@ describe("Loading", () => {
     });
 
     it("useLoading returns undefined outside a <Loading> provider, so callers can opt out safely", () => {
-        let value: unknown = "unset";
-        function Probe() {
-            value = useLoading();
-            return null;
-        }
+        probed = "unset";
         render(<Probe />);
-        expect(value).toBeUndefined();
+        expect(probed).toBeUndefined();
     });
 });

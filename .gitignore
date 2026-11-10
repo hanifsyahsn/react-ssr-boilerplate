@@ -23,3 +23,5 @@ coverage/
 
 *.tmp
 
+# Local-only Claude rule: names internal derived repos (this repo is public)
+.claude/rules/derived-repos.md

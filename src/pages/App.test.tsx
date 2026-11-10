@@ -1,15 +1,14 @@
-import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { AuthEnums } from "../enums/auth";
 import { authenticated, makeStore, renderWithProviders } from "../test/render";
-import { useMswServer } from "../test/mswServer";
+import { setupMswServer } from "../test/mswServer";
 import type { RouteContext } from "../types/routing";
 
 // Integration: the real route table rendered through App (nav + routing + auth).
-useMswServer();
+setupMswServer();
 
 // About fetches on mount; keep it from hitting the network in routing tests.
 function stubAboutFetch() {

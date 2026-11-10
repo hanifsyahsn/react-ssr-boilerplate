@@ -1,6 +1,6 @@
 name: CI
 
-# Tests are mandatory: every push and pull request must pass the typecheck,
+# Tests are mandatory: every push and pull request must pass the linter (no warnings), the typecheck,
 # all tests and the coverage thresholds in vitest.config.mts, and must build.
 on:
   push:
@@ -16,6 +16,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:coverage
       - run: npm run build

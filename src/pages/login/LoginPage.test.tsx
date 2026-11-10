@@ -1,15 +1,14 @@
-import React from "react";
 import { describe, expect, it } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import LoginPage from "./LoginPage";
 import { AuthEnums } from "../../enums/auth";
-import { API, server, useMswServer } from "../../test/mswServer";
+import { API, server, setupMswServer } from "../../test/mswServer";
 import { TEST_USER, renderWithProviders } from "../../test/render";
 
 // Integration: LoginPage -> loginThunk -> authApi -> axios -> (fake) backend.
-useMswServer();
+setupMswServer();
 
 async function submit(email: string, password: string) {
     const user = userEvent.setup();

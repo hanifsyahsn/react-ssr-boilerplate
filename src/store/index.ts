@@ -79,6 +79,7 @@ export const loginThunk = createAsyncThunk<User, Credentials, { rejectValue: str
     }
 );
 
+// biome-ignore lint/suspicious/noConfusingVoidType: `void` arg is how RTK types a thunk called with no argument
 export const logoutThunk = createAsyncThunk("auth/logout", async (_: void, { dispatch }) => {
     await authApi.logout().catch(() => undefined);
     dispatch(setAuthUnauthenticated());
