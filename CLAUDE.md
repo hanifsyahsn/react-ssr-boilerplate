@@ -18,7 +18,7 @@ npm run build         # webpack client + server bundles into dist/
 npm start             # production server (run build first)
 ```
 
-`.env`: `API_BASE_URL` (where `/api/*` is proxied), `LIVE_RELOAD` (`auto` | `prompt` | `off`), `PORT` (default 3000).
+`.env` (copy `.env.example`, never commit `.env`): `API_BASE_URL` (where `/api/*` is proxied), `LIVE_RELOAD` (`auto` | `prompt` | `off`), `PORT` (default 3000).
 
 ## Always
 
