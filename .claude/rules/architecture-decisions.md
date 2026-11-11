@@ -32,7 +32,7 @@ Repo types: **server apps** run Node in production (Docker on an internal server
 | AD-06 | Short `CLAUDE.md` + one-topic `.claude/rules/*.md` with `paths:` | Global | `knowledge-as-rules.md` |
 | AD-12 | `.env.example` committed with every key (no secrets); `.env` stays ignored | Global | `.env.example`, `.gitignore` |
 
-## Decided 2026-11-10 (found in derived repos; boilerplate implementation pending)
+## Decided 2026-11-10, AD-23 on 2026-11-11 (found in derived repos; boilerplate implementation pending)
 
 | ID | Decision | Scope | Why | Reference |
 |---|---|---|---|---|
@@ -48,6 +48,7 @@ Repo types: **server apps** run Node in production (Docker on an internal server
 | AD-20 | Static prerender mode (`build:static`): one `renderPage(url)` shared by dev server and prerender; writes `<page>.html`, `404.html`, `sitemap.xml`, `robots.txt`, `_redirects`, `_headers` | Conditional: deployed as static HTML | Three repos built this separately | static site A: `src/server/prerender.tsx` + `site.ts`; static site P: `src/server/static.ts` |
 | AD-21 | SEO head per route: title, description, canonical, Open Graph/Twitter card, JSON-LD; 404 and non-200 get `noindex` only | Conditional: public site that should be indexed | Only `<title>` in the boilerplate | static site A: `src/seo.ts` |
 | AD-22 | Fast image delivery: no raw `/assets/...` in `src`; `assetUrl`/`imageSet` give versioned `/v/<hash>/` URLs cached a year, CDN `srcset`, `width`/`height` on every `<img>`, prefetch | Conditional: serves its own images | Plan in `images.md` | static site A: `src/images.ts`, `scripts/asset-manifest.js` |
+| AD-23 | Code review by a read-only reviewer: Antigravity (Opus 5.5, fallback Gemini 4 Argon high), or Claude Code `/code-review` in a fresh session when agy has no quota; the review lands only in `docs/review/REVIEW.md`; reports only a (bug in normal use), b (security), c (contract break, also binding Claude's own fixes) with scenario + exact code quote; one round per scope, round 2 only checks a/b/c fixes. **Safe for production** = no open a/b/c + lint/typecheck/test/build pass with behaviour tests (AD-03) + changed flow checked in a real browser | Global (c only where there is a backend contract; static sites: their CMS/API data source, else n/a) | A separate reviewer catches what the fixing context misses, and a fixed bar for "safe" stops endless review loops; the reviewer itself must be verified (it has cited non-existent files and missed a real bug) | server app M + backend M: `.agent/rules/code-review.md`, `docs/review/`; process and template in `code-review.md` |
 
 ## Optional
 

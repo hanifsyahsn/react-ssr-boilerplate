@@ -36,5 +36,6 @@ npm start             # production server (run build first)
 | `build.md` | `webpack.*.js`, `babel.config.js`, `postcss.config.js`, `tsconfig.json`, `package.json` | bundle split and toolchain |
 | `linting.md` | `src/**`, `biome.json`, `package.json`, CI workflow | Biome linter: decision (why not ESLint), rules, suppressions |
 | `architecture-decisions.md` | rules, configs, `src/{server,client,service}/**` | register of binding decisions AD-xx (global / conditional / optional), status and reference implementation |
+| `code-review.md` | rules, `CLAUDE.md`, `.agent/**`, `docs/review/**` | AD-23: read-only review (agy, else `/code-review`), a/b/c stop rule, "safe for production" gate, reviewer rules template |
 | `derived-repos.md` | rules, configs, CI, `src/server/**` | **local only (gitignored)**: derived repos, reference labels, how to propagate a change |
 | `images.md` | `src/**/*.{tsx,css}`, `public/**`, `src/assets/**` | fast image delivery plan (not implemented yet) |
