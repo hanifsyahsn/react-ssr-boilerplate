@@ -21,4 +21,5 @@ paths:
 - Suppress a false positive inline with a reason: `// biome-ignore lint/<group>/<rule>: <why>` (example: the `void` thunk arg in `src/store/index.ts`).
 - Functions named `useXxx` are treated as React hooks. Don't use that prefix for non-hook helpers (that's why the MSW helper is `setupMswServer`).
 - `npm run lint:fix` applies safe fixes only. Unsafe fixes (`--unsafe`, e.g. removing unused imports) can leave a blank first line: review the diff.
+- **Before adopting Biome in a repo whose Babel uses the classic JSX runtime** (`"@babel/preset-react"` without `runtime: "automatic"`), switch Babel to automatic first. Biome removes `import React` as unused, and with the classic runtime every SSR page then throws "React is not defined" while tests and the build still pass. That happened here in the Biome commit and stayed unnoticed until a real-browser check (see `build.md`).
 - `biome migrate` in 2.6 turned `"recommended": true` into `"preset": "none"`. After any migrate, check that the preset is still `recommended`.
