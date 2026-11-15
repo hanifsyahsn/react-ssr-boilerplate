@@ -28,3 +28,7 @@ coverage/
 
 # Local env (copy .env.example)
 .env
+
+# Local-only code review rounds and backlog (AD-23)
+docs/review/
+.agent/

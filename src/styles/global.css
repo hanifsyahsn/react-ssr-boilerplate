@@ -23,6 +23,11 @@ p, button {
     color: var(--deep-teal);
 }
 
+/* AD-24: PasswordInput has its own eye, so Edge shows only that one */
+input::-ms-reveal, input[type="password"]::-ms-clear {
+    display: none;
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
 }

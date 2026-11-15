@@ -46,6 +46,34 @@ describe("Login page", () => {
         expect(store.getState().data.auth.status).toBe(AuthEnums.UNAUTHENTICATED);
     });
 
+    it("masks a revealed password again after a failed login, so it doesn't stay readable on screen", async () => {
+        renderWithProviders(<LoginPage />, { route: "/auth/login" });
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText("Email"), "demo@example.com");
+        await user.type(screen.getByLabelText("Password"), "wrong");
+        await user.click(screen.getByRole("button", { name: "Show password" }));
+        expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+
+        await user.click(screen.getByRole("button", { name: "Log in" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
+        expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+        expect(screen.getByLabelText("Password")).toHaveValue("wrong");
+    });
+
+    it("masks a revealed password again when the browser blocks the submit because the email is empty", async () => {
+        const { location } = renderWithProviders(<LoginPage />, { route: "/auth/login" });
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText("Password"), "password123");
+        await user.click(screen.getByRole("button", { name: "Show password" }));
+        expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+
+        await user.click(screen.getByRole("button", { name: "Log in" }));
+
+        expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+        expect(location()).toBe("/auth/login");
+    });
+
     it("shows the loading overlay while the login request is in flight, then hides it", async () => {
         server.use(
             http.post(`${API}/auth/login`, async () => {

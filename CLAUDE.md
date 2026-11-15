@@ -38,5 +38,5 @@ npm start             # production server (run build first)
 | `architecture-decisions.md` | rules, configs, `src/{server,client,service}/**` | register of binding decisions AD-xx (global / conditional / optional), status and reference implementation |
 | `code-review.md` | rules, `CLAUDE.md`, `.agent/**`, `docs/review/**` | AD-23: read-only review (agy, else `/code-review`), a/b/c stop rule, "safe for production" gate, reviewer rules template |
 | `derived-repos.md` | rules, configs, CI, `src/server/**` | **local only (gitignored)**: derived repos, reference labels, how to propagate a change |
-| `password-input.md` | `src/pages/**`, `src/components/**`, `src/**/*.css` | AD-24: shared show / hide password button, binding behaviour + required tests (not implemented yet) |
+| `password-input.md` | `src/pages/**`, `src/components/**`, `src/**/*.css` | AD-24: shared show / hide password button, binding behaviour, required tests + real-browser check |
 | `images.md` | `src/**/*.{tsx,css}`, `public/**`, `src/assets/**` | fast image delivery plan (not implemented yet) |

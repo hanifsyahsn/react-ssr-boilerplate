@@ -1,0 +1,42 @@
+@import '../../styles/variables.css';
+
+.password-input {
+    position: relative;
+    display: flex;
+}
+
+.password-input-field {
+    flex: 1;
+    min-width: 0;
+    padding-right: 44px; /* room for the eye, so long passwords don't run under it */
+}
+
+.password-input-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--gray-600);
+    cursor: pointer;
+}
+
+.password-input-toggle:hover {
+    color: var(--gray-800);
+}
+
+.password-input-toggle:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: -2px;
+}
+
+.password-input-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}

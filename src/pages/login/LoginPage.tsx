@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { loginThunk } from "../../store";
 import type { AppDispatch } from "../../store";
 import { useLoading } from "../../components/loading";
+import { PasswordInput } from "../../components/password-input";
 import "./styles.css";
 
 function LoginPage() {
@@ -48,9 +49,8 @@ function LoginPage() {
                 </div>
                 <div className="login-field">
                     <label htmlFor="password">Password</label>
-                    <input
+                    <PasswordInput
                         id="password"
-                        type="password"
                         autoComplete="current-password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
