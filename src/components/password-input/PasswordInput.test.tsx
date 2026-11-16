@@ -355,6 +355,33 @@ describe("password field show / hide (AD-24)", () => {
         expect(field()).toHaveAttribute("type", "text");
     });
 
+    it("limit: with a disabled image button as the only submit button, Enter masks it although nothing is submitted", async () => {
+        const user = userEvent.setup();
+        render(
+            <form onSubmit={(event) => event.preventDefault()}>
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" />
+                <input type="image" alt="Log in" src="data:," disabled />
+            </form>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(field(), { key: "Enter" });
+        expect(field()).toHaveAttribute("type", "password");
+    });
+
+    it("limit: an Enter with keyCode 229 (an Android keyboard mid-word) is skipped, so a blocked implicit submit leaves it revealed", async () => {
+        const user = userEvent.setup();
+        render(
+            <form onSubmit={(event) => event.preventDefault()}>
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" required />
+            </form>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(field(), { key: "Enter", keyCode: 229 });
+        expect(field()).toHaveAttribute("type", "text");
+    });
+
     it("limit: page code calling requestSubmit() on a form the browser's validation blocks leaves it revealed; clicking the submit button from code masks it", async () => {
         const user = userEvent.setup();
         const onSubmit = vi.fn();

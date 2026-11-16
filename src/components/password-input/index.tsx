@@ -86,6 +86,10 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
     // neither does an IME commit (`isComposing`, or `keyCode` 229: Safari sends it after `compositionend`).
     // Limit: a handler that stops the Enter's propagation hides it from us. Checking `defaultPrevented` from a capture
     // listener after dispatch would need a timer: a queued microtask runs right after that listener, before the page's.
+    // Limits that only change when it masks (rule 3 in password-input.md): a disabled `<input type="image">` as the only
+    // submit button isn't in `form.elements`, so Enter masks although it submits nothing; an Enter the page cancels on
+    // `keypress` (not keydown) blocks the submit but still masks; an Android keyboard that sends a submitting Enter with
+    // `keyCode` 229 is skipped, so a blocked implicit submit leaves it revealed.
     // Both listen on the document and look up the field's form at event time, so a changed `form` attribute or a move
     // into another form is followed without re-binding.
     useEffect(() => {
