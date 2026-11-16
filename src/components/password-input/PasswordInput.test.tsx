@@ -1,5 +1,5 @@
 import { createRef, useState, type RefObject } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PasswordInput } from "./index";
@@ -70,6 +70,20 @@ const toggle = () => screen.getByRole("button", { name: "Show password" });
 
 // AD-24, `.claude/rules/password-input.md`. jsdom can't prove the caret restore or the mousedown preventDefault the
 // way a browser does: those need the real-browser check listed in the rule.
+// A controlled PasswordInput and a controlled plain <input>, both with inline callback refs, re-rendered on each key
+function InlineRefPage({ ours, plain }: { ours: (node: HTMLInputElement | null) => void; plain: (node: HTMLInputElement | null) => void }) {
+    const [password, setPassword] = useState("");
+    const [text, setText] = useState("");
+    return (
+        <>
+            <label htmlFor="password">Password</label>
+            <PasswordInput id="password" value={password} onChange={(event) => setPassword(event.target.value)} ref={(node) => ours(node)} />
+            <label htmlFor="plain">Plain</label>
+            <input id="plain" value={text} onChange={(event) => setText(event.target.value)} ref={(node) => plain(node)} />
+        </>
+    );
+}
+
 describe("password field show / hide (AD-24)", () => {
     it("hides the password at first", () => {
         render(<Form />);
@@ -264,6 +278,74 @@ describe("password field show / hide (AD-24)", () => {
         expect(field()).toHaveAttribute("type", "password");
     });
 
+    // user-event's Enter submits a form without a submit button directly, skipping validation, so these press the key
+    // with fireEvent: a blocked implicit submit is a keydown and nothing else.
+    it("Enter in the only field of a form with no submit button masks it, even when the browser's validation blocks that submit", async () => {
+        const user = userEvent.setup();
+        const onSubmit = vi.fn();
+        render(
+            <form onSubmit={onSubmit}>
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" required />
+            </form>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(field(), { key: "Enter" });
+        expect(field()).toHaveAttribute("type", "password");
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("an Enter the page takes over, an IME commit, a non-text control or another form's field leaves it revealed", async () => {
+        const user = userEvent.setup();
+        render(
+            <>
+                <form onSubmit={(event) => event.preventDefault()}>
+                    <label htmlFor="user">User</label>
+                    <input id="user" onKeyDown={(event) => event.key === "Enter" && event.preventDefault()} />
+                    <label htmlFor="remember">Remember me</label>
+                    <input id="remember" type="checkbox" />
+                    <label htmlFor="password">Password</label>
+                    <PasswordInput id="password" />
+                </form>
+                <form>
+                    <label htmlFor="search">Search</label>
+                    <input id="search" type="search" />
+                </form>
+            </>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(screen.getByLabelText("User"), { key: "Enter" });
+        fireEvent.keyDown(field(), { key: "Enter", isComposing: true });
+        fireEvent.keyDown(screen.getByLabelText("Remember me"), { key: "Enter" });
+        fireEvent.keyDown(screen.getByLabelText("Search"), { key: "Enter" });
+        fireEvent.keyDown(field(), { key: "a" });
+        expect(field()).toHaveAttribute("type", "text");
+    });
+
+    it("limit: page code calling requestSubmit() on a form the browser's validation blocks leaves it revealed; clicking the submit button from code masks it", async () => {
+        const user = userEvent.setup();
+        const onSubmit = vi.fn();
+        render(
+            <form onSubmit={onSubmit}>
+                <label htmlFor="email">Email</label>
+                <input id="email" type="email" required />
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" />
+                <button type="submit">Log in</button>
+            </form>
+        );
+        const form = field().form as HTMLFormElement;
+        await user.click(toggle());
+
+        act(() => form.requestSubmit());
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(field()).toHaveAttribute("type", "text");
+
+        act(() => screen.getByRole("button", { name: "Log in" }).click());
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(field()).toHaveAttribute("type", "password");
+    });
+
     it("keeps what the page sets on the field: id for its label, autocomplete for password managers, max length", () => {
         render(<Form />);
         expect(field()).toHaveAttribute("id", "password");
@@ -319,6 +401,37 @@ describe("password field show / hide (AD-24)", () => {
         unmount();
         expect(cleanup).toHaveBeenCalledTimes(1);
         expect(calls).not.toContain(null);
+    });
+
+    it("an inline callback ref stays attached while the field types and toggles: called once with the input, never with null", async () => {
+        const user = userEvent.setup();
+        const register = vi.fn();
+        const { unmount } = render(
+            <>
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" ref={(node) => register(node)} />
+            </>
+        );
+        await user.type(field(), "abc");
+        await user.click(toggle());
+        await user.click(toggle());
+        expect(register.mock.calls).toEqual([[field()]]);
+
+        unmount();
+        expect(register).toHaveBeenLastCalledWith(null);
+        expect(register).toHaveBeenCalledTimes(2);
+    });
+
+    it("a parent that re-renders with a new inline callback ref re-attaches it, the same as a plain <input> does", async () => {
+        const user = userEvent.setup();
+        const ours = vi.fn();
+        const plain = vi.fn();
+        render(<InlineRefPage ours={ours} plain={plain} />);
+        await user.type(field(), "ab");
+        await user.type(screen.getByLabelText("Plain"), "ab");
+        const shape = (spy: typeof ours) => spy.mock.calls.map(([node]) => (node === null ? "detach" : "attach"));
+        expect(shape(ours)).toEqual(shape(plain));
+        expect(field()).toHaveValue("ab");
     });
 
     it("when the page passes a different ref, the old one is cleared, the new one gets the input, and the field still works", async () => {

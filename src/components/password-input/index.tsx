@@ -4,13 +4,31 @@ import "./styles.css";
 
 type PasswordInputProps = Omit<ComponentProps<"input">, "type">;
 
+// Input types where Enter submits the form implicitly (HTML spec: the fields that block implicit submission)
+const IMPLICIT_SUBMIT_TYPES = new Set([
+    "text",
+    "search",
+    "url",
+    "tel",
+    "email",
+    "password",
+    "date",
+    "month",
+    "week",
+    "time",
+    "datetime-local",
+    "number",
+]);
+
 /**
  * A password field with its own show / hide button (AD-24, `.claude/rules/password-input.md`), the same in every
  * browser; Edge's built-in reveal eye is hidden in `global.css`. Masked by default. The button is a toggle: its name
  * stays "Show password" and `aria-pressed` carries the state (WAI-ARIA: a toggle's label doesn't change with its
  * state); the tooltip says what a click does. The toggle never moves the focus: with the field focused, a click keeps
- * the focus and caret there; otherwise the focus stays where it was. Every submit of the form masks it again, and so
- * does disabling the field (its eye is disabled too, so it couldn't be hidden otherwise).
+ * the focus and caret there; otherwise the focus stays where it was. Every submit the user starts (a submit button, Enter in a field) or that goes
+ * through masks it again, and so does disabling the field (its eye is disabled too, so it couldn't be hidden otherwise).
+ * Limit: page code calling `form.requestSubmit()` on a form the browser's validation blocks fires no event, so the
+ * field stays as it is; call `submitButton.click()` instead (same validation, and it masks).
  *
  * `id` falls back to a `useId()` (SSR-safe, unique), so the label and the eye's `aria-controls` always point at this
  * field. `ref` reaches the underlying input (form libraries, focus after an error).
@@ -24,7 +42,10 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
     // Disabling masks it: the disabled eye can't be pressed, so a revealed password would otherwise stay readable
     if (disabled && visible) setVisible(false);
 
-    // The caller's ref and ours both get the input. Returning a cleanup (React 19) means React never calls this with
+    // The caller's ref and ours both get the input. Keyed on [ref] like a plain <input>: our own renders (the toggle,
+    // its flushSync) keep the same ref, so it stays attached; a parent that re-renders with an inline arrow re-attaches
+    // it (cleanup, then attach), exactly as React does for <input ref={(el) => ...}>, which form libraries expect.
+    // Pinning the first ref instead would silently ignore a page that swaps to a different ref. Returning a cleanup (React 19) means React never calls this with
     // null; the cleanup runs the caller's own cleanup if its callback ref returned one, else calls it with null.
     const setInput = useCallback(
         (node: HTMLInputElement) => {
@@ -51,6 +72,9 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
     // masks it too: that click comes before validation, Enter in a field clicks the default submit button, and the
     // button may sit outside the <form> through `form="id"`. Not `invalid`: it also fires on every checkValidity()
     // call, which would mask the password while the user is still typing on a page that validates live.
+    // Enter in a text field of this form masks it too: with no submit button that's an implicit submit, which no click
+    // announces and the browser's validation can block. It listens in the bubble phase, after the page's own handlers,
+    // so an Enter the page takes over (preventDefault, e.g. to move to the next field) or an IME commit doesn't count.
     // Both listen on the document and look up the field's form at event time, so a changed `form` attribute or a move
     // into another form is followed without re-binding.
     useEffect(() => {
@@ -65,11 +89,20 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
                 if (submits && control.form !== null && control.form === ownForm()) setVisible(false);
             }
         };
+        const hideOnEnter = (event: KeyboardEvent) => {
+            if (event.key !== "Enter" || event.defaultPrevented || event.isComposing) return;
+            const field = event.target;
+            if (field instanceof HTMLInputElement && IMPLICIT_SUBMIT_TYPES.has(field.type)) {
+                if (field.form !== null && field.form === ownForm()) setVisible(false);
+            }
+        };
         document.addEventListener("submit", hideOnSubmit, true);
         document.addEventListener("click", hideOnSubmitClick, true);
+        document.addEventListener("keydown", hideOnEnter);
         return () => {
             document.removeEventListener("submit", hideOnSubmit, true);
             document.removeEventListener("click", hideOnSubmitClick, true);
+            document.removeEventListener("keydown", hideOnEnter);
         };
     }, []);
 
