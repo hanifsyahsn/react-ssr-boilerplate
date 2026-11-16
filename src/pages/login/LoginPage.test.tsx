@@ -46,7 +46,7 @@ describe("Login page", () => {
         expect(store.getState().data.auth.status).toBe(AuthEnums.UNAUTHENTICATED);
     });
 
-    it("masks a revealed password again after a failed login, so it doesn't stay readable on screen", async () => {
+    it("a revealed password is masked on Log in and stays masked once the login error shows, with what was typed kept for a retry", async () => {
         renderWithProviders(<LoginPage />, { route: "/auth/login" });
         const user = userEvent.setup();
         await user.type(screen.getByLabelText("Email"), "demo@example.com");

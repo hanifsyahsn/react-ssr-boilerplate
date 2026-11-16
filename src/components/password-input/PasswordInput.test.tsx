@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createRef, useState, type RefObject } from "react";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -25,6 +25,43 @@ function Form({ onSubmit = () => {}, disabled = false }: { onSubmit?: () => void
             />
             <button type="submit">Log in</button>
         </form>
+    );
+}
+
+// A field linked to one of two forms by its form attribute, which a test changes
+function TwoFormsPage({ formId }: { formId: string }) {
+    return (
+        <>
+            <form id="first" onSubmit={(event) => event.preventDefault()}>
+                <button type="submit">Submit first</button>
+            </form>
+            <form id="second" onSubmit={(event) => event.preventDefault()}>
+                <button type="submit">Submit second</button>
+            </form>
+            <label htmlFor="password">Password</label>
+            <PasswordInput id="password" form={formId} />
+        </>
+    );
+}
+
+// A field in a form whose ref a test swaps
+function RefForm({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }) {
+    return (
+        <form onSubmit={(event) => event.preventDefault()}>
+            <label htmlFor="password">Password</label>
+            <PasswordInput id="password" ref={inputRef} />
+            <button type="submit">Log in</button>
+        </form>
+    );
+}
+
+// A field a test disables and enables again
+function DisablePage({ disabled }: { disabled: boolean }) {
+    return (
+        <>
+            <label htmlFor="password">Password</label>
+            <PasswordInput id="password" disabled={disabled} />
+        </>
     );
 }
 
@@ -235,22 +272,104 @@ describe("password field show / hide (AD-24)", () => {
         expect(toggle()).toHaveAttribute("aria-controls", "password");
     });
 
-    it("a field given only a name uses it as its id, and keeps the page's own class", () => {
-        render(
+    it("fields without an id each get a unique one, so two with the same name don't share an id and each eye points at its own field", () => {
+        const { container } = render(
             <>
-                <label htmlFor="secret">Secret</label>
-                <PasswordInput name="secret" className="wide" />
+                <PasswordInput name="password" className="wide" />
+                <PasswordInput name="password" />
             </>
         );
-        expect(screen.getByLabelText("Secret")).toHaveAttribute("name", "secret");
-        expect(screen.getByLabelText("Secret")).toHaveClass("password-input-field", "wide");
-        expect(toggle()).toHaveAttribute("aria-controls", "secret");
+        const inputs = Array.from(container.querySelectorAll("input"));
+        const eyes = screen.getAllByRole("button", { name: "Show password" });
+        expect(inputs[0].id).not.toBe("");
+        expect(inputs[0].id).not.toBe(inputs[1].id);
+        expect(inputs[0]).toHaveAttribute("name", "password");
+        expect(inputs[0]).toHaveClass("password-input-field", "wide");
+        expect(eyes[0]).toHaveAttribute("aria-controls", inputs[0].id);
+        expect(eyes[1]).toHaveAttribute("aria-controls", inputs[1].id);
+    });
+
+    it("the page's ref reaches the input, as an object ref or a callback ref", () => {
+        const objectRef = createRef<HTMLInputElement>();
+        const callbackRef = vi.fn();
+        const { unmount } = render(
+            <>
+                <PasswordInput id="a" ref={objectRef} />
+                <PasswordInput id="b" ref={callbackRef} />
+            </>
+        );
+        expect(objectRef.current).toBe(document.getElementById("a"));
+        expect(callbackRef).toHaveBeenLastCalledWith(document.getElementById("b"));
+
+        unmount();
+        expect(objectRef.current).toBeNull();
+        expect(callbackRef).toHaveBeenLastCalledWith(null);
+    });
+
+    it("a callback ref that returns a cleanup (React 19) gets its cleanup on unmount and is never called with null", () => {
+        const calls: (HTMLInputElement | null)[] = [];
+        const cleanup = vi.fn();
+        const ref = (node: HTMLInputElement | null) => {
+            calls.push(node);
+            return cleanup;
+        };
+        const { unmount } = render(<PasswordInput id="c" ref={ref} />);
+        expect(calls).toEqual([document.getElementById("c")]);
+
+        unmount();
+        expect(cleanup).toHaveBeenCalledTimes(1);
+        expect(calls).not.toContain(null);
+    });
+
+    it("when the page passes a different ref, the old one is cleared, the new one gets the input, and the field still works", async () => {
+        const user = userEvent.setup();
+        const first = createRef<HTMLInputElement>();
+        const second = createRef<HTMLInputElement>();
+        const { rerender } = render(<RefForm inputRef={first} />);
+        rerender(<RefForm inputRef={second} />);
+
+        expect(first.current).toBeNull();
+        expect(second.current).toBe(field());
+
+        await user.type(field(), "abcdef");
+        field().setSelectionRange(2, 4);
+        await user.click(toggle());
+        expect(field()).toHaveFocus();
+        await user.click(screen.getByRole("button", { name: "Log in" }));
+        expect(field()).toHaveAttribute("type", "password");
+    });
+
+    it("follows a changed form attribute: the new form's submit masks it, the old form's doesn't", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<TwoFormsPage formId="first" />);
+        rerender(<TwoFormsPage formId="second" />);
+        await user.click(toggle());
+
+        await user.click(screen.getByRole("button", { name: "Submit first" }));
+        expect(field()).toHaveAttribute("type", "text");
+
+        await user.click(screen.getByRole("button", { name: "Submit second" }));
+        expect(field()).toHaveAttribute("type", "password");
     });
 
     it("turns the eye off with a disabled field", () => {
         render(<Form disabled />);
         expect(field()).toBeDisabled();
         expect(toggle()).toBeDisabled();
+    });
+
+    it("disabling a revealed field masks it, and it stays masked when enabled again", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<DisablePage disabled={false} />);
+        await user.click(toggle());
+        expect(field()).toHaveAttribute("type", "text");
+
+        rerender(<DisablePage disabled />);
+        expect(field()).toHaveAttribute("type", "password");
+        expect(toggle()).toHaveAttribute("aria-pressed", "false");
+
+        rerender(<DisablePage disabled={false} />);
+        expect(field()).toHaveAttribute("type", "password");
     });
 
     it("works outside a form too", async () => {

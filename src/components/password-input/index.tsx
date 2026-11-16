@@ -1,71 +1,96 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ComponentProps } from "react";
+import { flushSync } from "react-dom";
 import "./styles.css";
 
-type PasswordInputProps = Omit<ComponentProps<"input">, "type" | "ref">;
+type PasswordInputProps = Omit<ComponentProps<"input">, "type">;
 
 /**
  * A password field with its own show / hide button (AD-24, `.claude/rules/password-input.md`), the same in every
  * browser; Edge's built-in reveal eye is hidden in `global.css`. Masked by default. The button is a toggle: its name
  * stays "Show password" and `aria-pressed` carries the state (WAI-ARIA: a toggle's label doesn't change with its
  * state); the tooltip says what a click does. The toggle never moves the focus: with the field focused, a click keeps
- * the focus and caret there; otherwise the focus stays where it was. Every submit of the form masks it again.
+ * the focus and caret there; otherwise the focus stays where it was. Every submit of the form masks it again, and so
+ * does disabling the field (its eye is disabled too, so it couldn't be hidden otherwise).
+ *
+ * `id` falls back to a `useId()` (SSR-safe, unique), so the label and the eye's `aria-controls` always point at this
+ * field. `ref` reaches the underlying input (form libraries, focus after an error).
  */
-export function PasswordInput({ className, id, name, disabled, ...rest }: PasswordInputProps) {
+export function PasswordInput({ className, id, name, disabled, ref, ...rest }: PasswordInputProps) {
     const [visible, setVisible] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-    // The caret to put back after the toggle, set only when the field had the focus
-    const restore = useRef<{ start: number | null; end: number | null } | null>(null);
-    const inputId = id ?? name;
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const autoId = useId();
+    const inputId = id ?? autoId;
+
+    // Disabling masks it: the disabled eye can't be pressed, so a revealed password would otherwise stay readable
+    if (disabled && visible) setVisible(false);
+
+    // The caller's ref and ours both get the input. Returning a cleanup (React 19) means React never calls this with
+    // null; the cleanup runs the caller's own cleanup if its callback ref returned one, else calls it with null.
+    const setInput = useCallback(
+        (node: HTMLInputElement) => {
+            inputRef.current = node;
+            if (typeof ref === "function") {
+                const cleanup = ref(node);
+                return () => {
+                    inputRef.current = null;
+                    if (typeof cleanup === "function") cleanup();
+                    else ref(null);
+                };
+            }
+            if (ref) ref.current = node;
+            return () => {
+                inputRef.current = null;
+                if (ref) ref.current = null;
+            };
+        },
+        [ref]
+    );
 
     // Mask again on every submit, including one the page's own validation stops. A submit blocked by the browser's own
     // validation (`required`, `type="email"`...) fires no `submit`, so the click on one of this form's submit buttons
     // masks it too: that click comes before validation, Enter in a field clicks the default submit button, and the
     // button may sit outside the <form> through `form="id"`. Not `invalid`: it also fires on every checkValidity()
     // call, which would mask the password while the user is still typing on a page that validates live.
+    // Both listen on the document and look up the field's form at event time, so a changed `form` attribute or a move
+    // into another form is followed without re-binding.
     useEffect(() => {
-        const form = inputRef.current?.form;
-        if (!form) return;
-        const hide = () => setVisible(false);
+        const ownForm = () => inputRef.current?.form ?? null;
+        const hideOnSubmit = (event: Event) => {
+            if (event.target === ownForm()) setVisible(false);
+        };
         const hideOnSubmitClick = (event: MouseEvent) => {
             const control = (event.target as Element | null)?.closest?.("button, input");
             if (control instanceof HTMLButtonElement || control instanceof HTMLInputElement) {
-                if ((control.type === "submit" || control.type === "image") && control.form === form) hide();
+                const submits = control.type === "submit" || control.type === "image";
+                if (submits && control.form !== null && control.form === ownForm()) setVisible(false);
             }
         };
-        form.addEventListener("submit", hide);
+        document.addEventListener("submit", hideOnSubmit, true);
         document.addEventListener("click", hideOnSubmitClick, true);
         return () => {
-            form.removeEventListener("submit", hide);
+            document.removeEventListener("submit", hideOnSubmit, true);
             document.removeEventListener("click", hideOnSubmitClick, true);
         };
     }, []);
 
-    // Switching the type can drop the caret, so it is put back after the render
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `visible` is the trigger (run after each toggle), not a value read inside
-    useLayoutEffect(() => {
-        const input = inputRef.current;
-        const caret = restore.current;
-        restore.current = null;
-        if (!input || !caret) return;
-        input.focus();
-        input.setSelectionRange(caret.start, caret.end);
-    }, [visible]);
-
     const toggle = () => {
-        const input = inputRef.current;
-        // Only a field that has the focus gets it back: tapping the eye of an unfocused field must not pull the
-        // focus in (on a phone that opens the keyboard and scrolls). Don't use event.detail to tell mouse from
+        const input = inputRef.current as HTMLInputElement;
+        // Only a field that has the focus gets it back with its caret: tapping the eye of an unfocused field must not
+        // pull the focus in (on a phone that opens the keyboard and scrolls). Don't use event.detail to tell mouse from
         // keyboard: screen readers in browse mode send clicks with detail = 1.
-        if (input && document.activeElement === input) {
-            restore.current = { start: input.selectionStart, end: input.selectionEnd };
+        const caret = document.activeElement === input ? { start: input.selectionStart, end: input.selectionEnd } : null;
+        // Render the new type now, so the caret can be put back right after (switching the type can drop it)
+        flushSync(() => setVisible((v) => !v));
+        if (caret) {
+            input.focus();
+            input.setSelectionRange(caret.start, caret.end);
         }
-        setVisible((v) => !v);
     };
 
     return (
         <div className="password-input">
             <input
-                ref={inputRef}
+                ref={setInput}
                 type={visible ? "text" : "password"}
                 id={inputId}
                 name={name}
