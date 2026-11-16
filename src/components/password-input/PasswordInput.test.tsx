@@ -295,17 +295,15 @@ describe("password field show / hide (AD-24)", () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it("an Enter the page takes over, an IME commit, a non-text control or another form's field leaves it revealed", async () => {
+    it("an Enter the page takes over, an IME commit (Chrome or Safari), a non-text control or another form's field leaves it revealed", async () => {
         const user = userEvent.setup();
         render(
             <>
                 <form onSubmit={(event) => event.preventDefault()}>
-                    <label htmlFor="user">User</label>
-                    <input id="user" onKeyDown={(event) => event.key === "Enter" && event.preventDefault()} />
                     <label htmlFor="remember">Remember me</label>
                     <input id="remember" type="checkbox" />
                     <label htmlFor="password">Password</label>
-                    <PasswordInput id="password" />
+                    <PasswordInput id="password" onKeyDown={(event) => event.key === "Enter" && event.shiftKey && event.preventDefault()} />
                 </form>
                 <form>
                     <label htmlFor="search">Search</label>
@@ -314,11 +312,46 @@ describe("password field show / hide (AD-24)", () => {
             </>
         );
         await user.click(toggle());
-        fireEvent.keyDown(screen.getByLabelText("User"), { key: "Enter" });
+        fireEvent.keyDown(field(), { key: "Enter", shiftKey: true });
         fireEvent.keyDown(field(), { key: "Enter", isComposing: true });
+        fireEvent.keyDown(field(), { key: "Enter", keyCode: 229 });
         fireEvent.keyDown(screen.getByLabelText("Remember me"), { key: "Enter" });
         fireEvent.keyDown(screen.getByLabelText("Search"), { key: "Enter" });
         fireEvent.keyDown(field(), { key: "a" });
+        expect(field()).toHaveAttribute("type", "text");
+
+        // The same field and form: a plain Enter does mask it, so the cases above stayed revealed for their own reason
+        fireEvent.keyDown(field(), { key: "Enter" });
+        expect(field()).toHaveAttribute("type", "password");
+    });
+
+    it("an Enter that submits nothing leaves it revealed: a disabled submit button (a request running), or two text fields and no button", async () => {
+        const user = userEvent.setup();
+        const { unmount } = render(
+            <form onSubmit={(event) => event.preventDefault()}>
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" />
+                <button type="submit" disabled>
+                    Logging in...
+                </button>
+            </form>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(field(), { key: "Enter" });
+        expect(field()).toHaveAttribute("type", "text");
+        unmount();
+
+        render(
+            <form onSubmit={(event) => event.preventDefault()}>
+                <label htmlFor="email">Email</label>
+                <input id="email" type="email" />
+                <label htmlFor="password">Password</label>
+                <PasswordInput id="password" />
+            </form>
+        );
+        await user.click(toggle());
+        fireEvent.keyDown(screen.getByLabelText("Email"), { key: "Enter" });
+        fireEvent.keyDown(field(), { key: "Enter" });
         expect(field()).toHaveAttribute("type", "text");
     });
 

@@ -20,6 +20,12 @@ const IMPLICIT_SUBMIT_TYPES = new Set([
     "number",
 ]);
 
+const blocksImplicitSubmit = (el: Element): el is HTMLInputElement =>
+    el instanceof HTMLInputElement && IMPLICIT_SUBMIT_TYPES.has(el.type);
+
+const isSubmitButton = (el: Element | null | undefined): el is HTMLButtonElement | HTMLInputElement =>
+    (el instanceof HTMLButtonElement || el instanceof HTMLInputElement) && (el.type === "submit" || el.type === "image");
+
 /**
  * A password field with its own show / hide button (AD-24, `.claude/rules/password-input.md`), the same in every
  * browser; Edge's built-in reveal eye is hidden in `global.css`. Masked by default. The button is a toggle: its name
@@ -72,9 +78,14 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
     // masks it too: that click comes before validation, Enter in a field clicks the default submit button, and the
     // button may sit outside the <form> through `form="id"`. Not `invalid`: it also fires on every checkValidity()
     // call, which would mask the password while the user is still typing on a page that validates live.
-    // Enter in a text field of this form masks it too: with no submit button that's an implicit submit, which no click
-    // announces and the browser's validation can block. It listens in the bubble phase, after the page's own handlers,
-    // so an Enter the page takes over (preventDefault, e.g. to move to the next field) or an IME commit doesn't count.
+    // Enter in a text field also masks it when it does an implicit submit no click announces (the browser's validation
+    // can block it): only in a form with no submit button and exactly one field that blocks implicit submission (HTML
+    // spec). With a submit button, Enter clicks the default one (masked by the click) or, if it's disabled, submits
+    // nothing; with two or more such fields and no button, Enter submits nothing either. Bubble phase, after the page's
+    // own handlers, so an Enter the page takes over (preventDefault, e.g. to move to the next field) doesn't count, and
+    // neither does an IME commit (`isComposing`, or `keyCode` 229: Safari sends it after `compositionend`).
+    // Limit: a handler that stops the Enter's propagation hides it from us. Checking `defaultPrevented` from a capture
+    // listener after dispatch would need a timer: a queued microtask runs right after that listener, before the page's.
     // Both listen on the document and look up the field's form at event time, so a changed `form` attribute or a move
     // into another form is followed without re-binding.
     useEffect(() => {
@@ -84,17 +95,18 @@ export function PasswordInput({ className, id, name, disabled, ref, ...rest }: P
         };
         const hideOnSubmitClick = (event: MouseEvent) => {
             const control = (event.target as Element | null)?.closest?.("button, input");
-            if (control instanceof HTMLButtonElement || control instanceof HTMLInputElement) {
-                const submits = control.type === "submit" || control.type === "image";
-                if (submits && control.form !== null && control.form === ownForm()) setVisible(false);
-            }
+            if (isSubmitButton(control) && control.form !== null && control.form === ownForm()) setVisible(false);
         };
         const hideOnEnter = (event: KeyboardEvent) => {
-            if (event.key !== "Enter" || event.defaultPrevented || event.isComposing) return;
+            if (event.key !== "Enter" || event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
             const field = event.target;
-            if (field instanceof HTMLInputElement && IMPLICIT_SUBMIT_TYPES.has(field.type)) {
-                if (field.form !== null && field.form === ownForm()) setVisible(false);
+            const form = ownForm();
+            if (!(field instanceof Element) || !blocksImplicitSubmit(field) || form === null || field.form !== form) {
+                return;
             }
+            const controls = Array.from(form.elements);
+            if (controls.some(isSubmitButton)) return;
+            if (controls.filter(blocksImplicitSubmit).length === 1) setVisible(false);
         };
         document.addEventListener("submit", hideOnSubmit, true);
         document.addEventListener("click", hideOnSubmitClick, true);
